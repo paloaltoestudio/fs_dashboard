@@ -10,8 +10,6 @@ data = {
   "password": "%AL1h45g6Jw0PChDKKSXRpcFnw"
 }
 
-
-
 # A POST request to the API
 response = requests.post(auth, json=data)
 

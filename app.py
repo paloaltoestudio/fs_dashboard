@@ -1,20 +1,8 @@
-# Import packages
-from dash import Dash, html, dash_table
-import pandas as pd
+from dash import Dash, html
 
-# Incorporate data
-df = pd.read_csv('./gapminder2007.csv')
-
-# Initialize the app
 app = Dash()
 
-server = app.server
-
-# App layout
-app.layout = [
-    html.Div(children='My First App with Data'),
-    dash_table.DataTable(data=df.to_dict('records'), page_size=10)
-]
+app.layout = [html.Div(children='Hello World')]
 
 # Run the app
 if __name__ == '__main__':
