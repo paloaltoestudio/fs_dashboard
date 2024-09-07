@@ -3,6 +3,7 @@ import requests
 # The API endpoint
 auth = "https://pruebas.firmaseguro.co/api/v1/Auth/SignIn"
 get_all_consumptions = 'https://pruebas.firmaseguro.co/api/v1/Balance/get-all-consumption?initial_date=2024-01-01&final_date=2024-08-28'
+get_consumptions_by_nit = 'https://pruebas.firmaseguro.co/api/v1/Balance/get-all-consumption-by-nit?nit=1012402467&userAppId=0&initial_date=2024-01-01&final_date=2024-08-28'
 
 # Data to be sent
 data = {
@@ -22,6 +23,8 @@ headers = {
 
 
 consumptions = requests.get(get_all_consumptions, headers=headers)
+consumptions_by_nit = requests.get(get_consumptions_by_nit, headers=headers)
 
-# Print the response
-print(consumptions.json())
+if __name__ == 'main':
+  # Print the response
+  print(consumptions.json())
