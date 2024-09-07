@@ -4,6 +4,7 @@ from dash import dcc, html, callback
 from dash.dependencies import Input, Output
 import pandas as pd
 import plotly.express as px
+from urllib.parse import parse_qs, urlparse
 import locale
 
 # Local import
@@ -13,6 +14,7 @@ from data import report
 locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')  # For Linux/Mac
 
 # Load JSON data
+json_data_all = report.consumptions.json()
 json_data = report.consumptions_by_nit.json()
 
 # Prepare data for visualization
@@ -77,7 +79,7 @@ layout = html.Div([
         ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),  
         
       
-    ], style={'display':'flex', 'column-gap': '20px', 'margin-bottom': '20px'}),
+    ], className="box"),
 
     html.Div([
         html.Div([
@@ -90,12 +92,14 @@ layout = html.Div([
             dcc.Graph(id='tipo-creacion-donut', style={'height': '350px'}),
         ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
         
-        # html.Div([
-        #     # Donut chart for tipoAutenticacion
-        #     dcc.Graph(id='tipo-autenticacion', style={'height': '350px'}),
-        # ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
-
-    ], style={'display':'flex', 'column-gap': '20px'}),
+        html.Div([
+            # Chart for Auth Method
+            dcc.Graph(id='auth-methods', style={'height': '350px'}),
+            dcc.Location(id='url', refresh=False)  # Location component to get the URL
+        ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
+        
+        
+    ], className="box"),
 
     # Dummy component to use as an Input trigger for the callback
     dcc.Interval(
@@ -176,7 +180,7 @@ def update_tipo_creacion_donut(selected_status):
                 align="center",
                 xref="paper", 
                 yref="paper",
-                x=0.3, 
+                x=0.1, 
                 y=0.5, 
                 showarrow=False
             )
@@ -228,7 +232,7 @@ def update_tipo_proceso_donut(selected_status):
                 align="center",
                 xref="paper", 
                 yref="paper",
-                x=0.3, 
+                x=0.1, 
                 y=0.5, 
                 showarrow=False
             )
@@ -331,4 +335,65 @@ def update_consolidados(selected_status):
     
     return fig
 
+
+# Callback to update the auth methods graph
+@callback(
+    Output('auth-methods', 'figure'),
+    Input('url', 'href')  # Use 'href' to get the full URL including query params
+)
+def update_auth_methods(href):
+    # Step 1: Parse the 'href' to extract query parameters
+    if href:
+        parsed_url = urlparse(href)
+        query_params = parse_qs(parsed_url.query)
+        nit = query_params.get('nit', [None])[0]  # Get 'nit' from query parameters
+
+        if nit:
+            # Step 2: Filter data for a specific nit
+            filtered_data = next((item for item in json_data_all if item['nit'] == nit), None)
+
+            # Step 3: Initialize the counts for each authentication method
+            auth_methods = {
+                1: "Llamada",
+                2: "SMS",
+                3: "Email",
+                4: "WhatsApp"
+            }
+
+            # Initialize counts for each authentication method with 0
+            auth_method_consumption = {name: 0 for name in auth_methods.values()}
+
+            # Step 3: Count occurrences of each authentication method
+            if filtered_data:
+                for entry in filtered_data['consumption']['firmaSeguroMethod']:
+                    auth_method_name = auth_methods.get(entry['authenticationMethodId'])
+                    if auth_method_name:
+                        auth_method_consumption[auth_method_name] += entry['amountConsumed']
+
+            # Step 4: Prepare data for the bar chart
+            x = list(auth_method_consumption.keys())  # ['Llamada', 'SMS', 'Email', 'WhatsApp']
+            y = list(auth_method_consumption.values())  # Summed 'amountConsumed' values
+
+            # Step 5: Create the bar graph using Plotly
+            fig = px.bar(
+                x=x,
+                y=y,
+                labels={'x': 'Método', 'y': 'Total'},
+                title=f'Firmas por tipo de Autenticación',
+                color=x,
+                text=y
+            )
+
+            # Update the layout to position the text on top of each bar
+            fig.update_traces(textposition='outside')   
+
+            return fig
+
+        # Return an empty figure if no nit is provided or found
+        return px.bar(
+            x=['Llamada', 'SMS', 'Email', 'WhatsApp'],
+            y=[0, 0, 0, 0],
+            labels={'x': 'Authentication Method', 'y': 'Count'},
+            title='No Data Available'
+        )
 

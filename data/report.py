@@ -1,14 +1,25 @@
 import requests
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+url = os.getenv('DEVURL')
 
 # The API endpoint
-auth = "https://pruebas.firmaseguro.co/api/v1/Auth/SignIn"
-get_all_consumptions = 'https://pruebas.firmaseguro.co/api/v1/Balance/get-all-consumption?initial_date=2024-01-01&final_date=2024-08-28'
-get_consumptions_by_nit = 'https://pruebas.firmaseguro.co/api/v1/Balance/get-all-consumption-by-nit?nit=1012402467&userAppId=0&initial_date=2024-01-01&final_date=2024-08-28'
+auth = f"{url}/api/v1/Auth/SignIn"
+get_all_consumptions = f'{url}/api/v1/Balance/get-all-consumption?initial_date=2024-01-01&final_date=2024-08-28'
+get_consumptions_by_nit = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit=1012402467&userAppId=0&initial_date=2024-01-01&final_date=2024-08-28'
 
-# Data to be sent
+# Access environment variables
+email = os.getenv('EMAIL')
+password = os.getenv('PASSWORD')
+
+# data to auth
 data = {
-  "email": "hola@firmaseguro.co",
-  "password": "%AL1h45g6Jw0PChDKKSXRpcFnw"
+    "email": email,
+    "password": password
 }
 
 # A POST request to the API
