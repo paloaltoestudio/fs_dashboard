@@ -1,11 +1,19 @@
 # Import packages
 import dash
-from dash import dcc, html, callback
+from dash import dcc, html, callback, State
 from dash.dependencies import Input, Output
 import pandas as pd
 import plotly.express as px
 from urllib.parse import parse_qs, urlparse
 import locale
+import requests
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+url = os.getenv('DEVURL')
 
 # Local import
 from data import report
@@ -17,39 +25,34 @@ locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')  # For Linux/Mac
 json_data_all = report.consumptions.json()
 json_data = report.consumptions_by_nit.json()
 
+
 # Prepare data for visualization
 data = []
 for entry in json_data:
     process_status = entry["processStatus"]
     consumption = entry["consumption"]
     
-    # Extract 'tipoCreacion' as is
+    # Extract fields as is
     consolidados = consumption.get('consolidados', {})
-    
-    # Extract 'tipoCreacion' as is
     tipo_creacion = consumption.get('tipoCreacion', {})
-    
-    # Extract 'tipoProceso' as is
     tipo_proceso = consumption.get('tipoProceso', {})
-    
-    # Extract 'tipoAutenticacion' as is
     tipo_autenticacion = consumption.get('tipoAutenticacion', {})
 
     # If 'tipoCreacion' is a dictionary, append it to the data
     if isinstance(tipo_creacion, dict):
         data.append({
             "processStatus": process_status,
-            "consolidados": consolidados,  # Store it as a dictionary
+            "consolidados": consolidados,
             "totalConsolidado": sum(consumption.get('consolidados', {}).values()),
-            "tipoCreacion": tipo_creacion,  # Store it as a dictionary
-            "tipoProceso": tipo_proceso,  # Store it as a dictionary
-            "tipoAutenticacion": tipo_autenticacion,  # Store it as a dictionary
+            "tipoCreacion": tipo_creacion,
+            "tipoProceso": tipo_proceso,
+            "tipoAutenticacion": tipo_autenticacion,
         })
 
 # Convert the data into a pandas DataFrame
 df = pd.DataFrame(data)
 
-print(df.head())
+print('df: ', df.head())
 
 # Register page
 dash.register_page(__name__)
@@ -65,6 +68,15 @@ layout = html.Div([
                 clearable=False,
             ),
         ], style={'display': 'inline-block', 'width': '20%'}),
+        html.Div([
+            dcc.DatePickerRange(
+                id='date-picker-range',
+                start_date='2024-01-01',  # Initial start date
+                end_date='2024-08-28',    # Initial end date
+                display_format='YYYY-MM-DD'
+            ),
+            html.Button('Submit', id='submit-button', n_clicks=0),
+        ], style={'display': 'inline-block', 'width': '40%'}),
     ], style={'display':'flex', 'justify-content':'flex-end', 'margin-top': '20px', 'margin-bottom': '20px'}),
 
     html.Div([
@@ -77,7 +89,6 @@ layout = html.Div([
         html.Div([
             dcc.Graph(id='consolidado-graph', style={'height': '350px'}),
         ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),  
-        
       
     ], className="box"),
 
@@ -98,7 +109,6 @@ layout = html.Div([
             dcc.Location(id='url', refresh=False)  # Location component to get the URL
         ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
         
-        
     ], className="box"),
 
     # Dummy component to use as an Input trigger for the callback
@@ -115,7 +125,6 @@ layout = html.Div([
     Input('interval-component', 'n_intervals')  # Dummy input
 )
 def update_consolidado_graph(n_intervals):
-    # Bar chart showing consolidado by process status with numbers on top of each bar
     fig = px.bar(
         df,
         y='processStatus',
@@ -334,14 +343,69 @@ def update_consolidados(selected_status):
     fig.update_traces(textposition="top center")
     
     return fig
-
-
+    
 # Callback to update the auth methods graph
 @callback(
     Output('auth-methods', 'figure'),
-    Input('url', 'href')  # Use 'href' to get the full URL including query params
+    Input('submit-button', 'n_clicks'),
+    Input('url', 'href'),  
+    State('date-picker-range', 'start_date'),
+    State('date-picker-range', 'end_date'),
 )
-def update_auth_methods(href):
+def update_auth_methods(n_clicks, href, start_date, end_date):
+    # Corrected order in the print statement
+    
+    
+    # API URL with dynamic dates
+    api_url = f'{url}/api/v1/Balance/get-all-consumption?initial_date={start_date}&final_date={end_date}'
+
+    # Access environment variables
+    email = os.getenv('EMAIL')
+    password = os.getenv('PASSWORD')
+
+    # Data for authentication
+    data = {
+        "email": email,
+        "password": password
+    }
+
+    # A POST request to the API
+    auth = f"{url}/api/v1/Auth/SignIn"
+    response = requests.post(auth, json=data)
+
+    if response.status_code != 200:
+        print(f"Authentication failed with status code {response.status_code}")
+        return px.bar(x=[], y=[], title="Error: Failed to authenticate")  # Return empty plot on auth failure
+
+    try:
+        res_json = response.json()
+        token = res_json['access_token']
+    except requests.exceptions.JSONDecodeError:
+        print("Failed to decode authentication response")
+        return px.bar(x=[], y=[], title="Error: Invalid auth response")  # Return empty plot on invalid auth response
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Make API request to get data
+    consumptions = requests.get(api_url, headers=headers)
+    if consumptions.status_code != 200:
+        print(f"Failed to fetch consumption data with status code {consumptions.status_code}")
+        return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Return empty plot on data fetch failure
+
+    try:
+        json_data_all = consumptions.json()  # Parse JSON response
+    except requests.exceptions.JSONDecodeError:
+        print("Failed to decode consumption data response")
+        return px.bar(
+            x=['Llamada', 'SMS', 'Email', 'WhatsApp'],
+            y=[0, 0, 0, 0],
+            labels={'x': 'Método', 'y': 'Total'},
+            title='Datos no encontrados',
+            text=[0, 0, 0, 0]
+        )
+
     # Step 1: Parse the 'href' to extract query parameters
     if href:
         parsed_url = urlparse(href)
@@ -393,7 +457,7 @@ def update_auth_methods(href):
         return px.bar(
             x=['Llamada', 'SMS', 'Email', 'WhatsApp'],
             y=[0, 0, 0, 0],
-            labels={'x': 'Authentication Method', 'y': 'Count'},
-            title='No Data Available'
+            labels={'x': 'Método', 'y': 'Total'},
+            title='Datos no encontrados',
+            text=[0, 0, 0, 0]
         )
-
