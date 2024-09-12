@@ -455,21 +455,31 @@ def update_consolidado_graph(start_date, end_date, href, selected_status, user_f
     Input('date-picker-range', 'end_date'),
     Input('url', 'href'),  
     Input('status-dropdown', 'value'),
+    Input('users-dropdown', 'value'),
 )
-def update_tipo_creacion_donut(start_date, end_date, href, selected_status):
+def update_tipo_creacion_donut(start_date, end_date, href, selected_status, user_filter):
     nit = ''
 
     if href:
         parsed_url = urlparse(href)
         query_params = parse_qs(parsed_url.query)
         nit = query_params.get('nit', [None])[0]  # Get 'nit' from query parameters
+        user = query_params.get('user', [None])[0]  # Get 'user' from query parameters
+   
+    # API URL with dynamic dates
+    # api_url = f'{url}/api/v1/Balance/get-all-consumption?initial_date={start_date}&final_date={end_date}'
+    user_id = 0
+    if user and int(user) > 0:
+        user_id = user
+    elif user_filter and user_filter > 0:
+        user_id = user_filter
 
     token = authenticate()
     if not token:
         return px.bar(x=[], y=[], title="Error: Failed to authenticate")  # Empty plot on auth failure
 
     headers = {"Authorization": f"Bearer {token}"}
-    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId=0&initial_date={start_date}&final_date={end_date}'
+    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId={user_id}&initial_date={start_date}&final_date={end_date}'
     json_data = fetch_data(api_url, headers)
     if not json_data:
         return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Empty plot on data fetch failure
@@ -485,21 +495,31 @@ def update_tipo_creacion_donut(start_date, end_date, href, selected_status):
     Input('date-picker-range', 'end_date'),
     Input('url', 'href'),  
     Input('status-dropdown', 'value'),
+    Input('users-dropdown', 'value'),
 )
-def update_tipo_proceso_donut(start_date, end_date, href, selected_status):
+def update_tipo_proceso_donut(start_date, end_date, href, selected_status, user_filter):
     nit = ''
 
     if href:
         parsed_url = urlparse(href)
         query_params = parse_qs(parsed_url.query)
         nit = query_params.get('nit', [None])[0]  # Get 'nit' from query parameters
+        user = query_params.get('user', [None])[0]  # Get 'user' from query parameters
+   
+    # API URL with dynamic dates
+    # api_url = f'{url}/api/v1/Balance/get-all-consumption?initial_date={start_date}&final_date={end_date}'
+    user_id = 0
+    if user and int(user) > 0:
+        user_id = user
+    elif user_filter and user_filter > 0:
+        user_id = user_filter
 
     token = authenticate()
     if not token:
         return px.bar(x=[], y=[], title="Error: Failed to authenticate")  # Empty plot on auth failure
 
     headers = {"Authorization": f"Bearer {token}"}
-    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId=0&initial_date={start_date}&final_date={end_date}'
+    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId={user_id}&initial_date={start_date}&final_date={end_date}'
     json_data = fetch_data(api_url, headers)
     if not json_data:
         return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Empty plot on data fetch failure
@@ -515,21 +535,31 @@ def update_tipo_proceso_donut(start_date, end_date, href, selected_status):
     Input('date-picker-range', 'end_date'),
     Input('url', 'href'),  
     Input('status-dropdown', 'value'),
+    Input('users-dropdown', 'value'),
 )
-def update_consolidados(start_date, end_date, href, selected_status):
+def update_consolidados(start_date, end_date, href, selected_status, user_filter):
     nit = ''
 
     if href:
         parsed_url = urlparse(href)
         query_params = parse_qs(parsed_url.query)
         nit = query_params.get('nit', [None])[0]  # Get 'nit' from query parameters
+        user = query_params.get('user', [None])[0]  # Get 'user' from query parameters
+   
+    # API URL with dynamic dates
+    # api_url = f'{url}/api/v1/Balance/get-all-consumption?initial_date={start_date}&final_date={end_date}'
+    user_id = 0
+    if user and int(user) > 0:
+        user_id = user
+    elif user_filter and user_filter > 0:
+        user_id = user_filter
 
     token = authenticate()
     if not token:
         return px.bar(x=[], y=[], title="Error: Failed to authenticate")  # Empty plot on auth failure
 
     headers = {"Authorization": f"Bearer {token}"}
-    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId=0&initial_date={start_date}&final_date={end_date}'
+    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId={user_id}&initial_date={start_date}&final_date={end_date}'
     json_data = fetch_data(api_url, headers)
     if not json_data:
         return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Empty plot on data fetch failure
