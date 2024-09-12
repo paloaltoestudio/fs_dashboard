@@ -42,6 +42,10 @@ Replace the placeholders with your actual environment variable values.
 To build the Docker image, run the following command in the root directory of your project (where the Dockerfile is located):
 
 ```bash
+<<<<<<< HEAD
+=======
+Copy code
+>>>>>>> d73e3cdb38a3918409d6a3592d5f934dd11151b0
 docker build -t dash_app .
 ```
 
