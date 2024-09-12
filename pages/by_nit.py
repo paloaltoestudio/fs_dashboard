@@ -75,17 +75,13 @@ def build_data_from_api(json_data):
             })
     return pd.DataFrame(data)
 
-# Prepare initial data for layout
-json_data = report.consumptions_by_nit.json()
-df = build_data_from_api(json_data)
-
-# Register page
-dash.register_page(__name__)
-
 # Set date range
 current_date = datetime.now().date()
 initial_start_date = (current_date - timedelta(days=30)).strftime('%Y-%m-%d')
 initial_end_date = current_date.strftime('%Y-%m-%d')
+
+# Register page
+dash.register_page(__name__)
 
 # Layout
 layout = html.Div([
@@ -104,8 +100,6 @@ layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='status-dropdown',
-                options=[{'label': status, 'value': status} for status in df['processStatus'].unique()],
-                value=df['processStatus'].unique()[4],  # Default value
                 clearable=False,
                 style={'height': '42px', 'width': '100%'}
             ),
@@ -305,6 +299,43 @@ def create_figure_from_data(df, selected_status, metric):
 
     # Add more chart types as needed
     return px.bar()
+
+@callback(
+    Output('status-dropdown', 'options'),
+    Output('status-dropdown', 'value'),
+    Input('url', 'search')  # 'search' contains the URL parameters
+)
+def initial_data(search):
+    if search:
+        # Remove the leading '?' character from the search string
+        query_params = parse_qs(search[1:])
+        # Extract 'nit' parameter; returns a list, so use [0] to get the value
+        nit = query_params.get('nit', [None])[0]
+        user = query_params.get('user', [None])[0]
+    else:
+        nit = None
+        user = None
+
+    if nit:
+        # Prepare initial data for layout
+        get_consumptions_by_nit = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&initial_date={initial_start_date}&final_date={current_date}'
+        token = authenticate()
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+        consumptions_by_nit = fetch_data(get_consumptions_by_nit, headers=headers)
+        json_data = consumptions_by_nit
+        df = build_data_from_api(json_data)
+
+        
+        status_options = [{'label': status, 'value': status} for status in df['processStatus'].unique()]
+
+        default_value=df['processStatus'].unique()[4] if not df.empty else None  # Default value
+            
+        return status_options, default_value
+
+    return [], None
+
 
 @callback(
     Output('users-dropdown', 'options'),
@@ -587,7 +618,6 @@ def update_auth_methods(start_date, end_date, href, selected_status, user_filter
         user = query_params.get('user', [None])[0]  # Get 'user' from query parameters
    
     # API URL with dynamic dates
-    # api_url = f'{url}/api/v1/Balance/get-all-consumption?initial_date={start_date}&final_date={end_date}'
     user_id = 0
     if user and int(user) > 0:
         user_id = user

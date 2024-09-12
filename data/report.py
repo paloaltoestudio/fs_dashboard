@@ -1,16 +1,22 @@
 import requests
 import os
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
 # Load environment variables from .env file
 load_dotenv()
 
 url = os.getenv('DEVURL')
 
+# Set date range
+current_date = datetime.now().date()
+initial_start_date = (current_date - timedelta(days=30)).strftime('%Y-%m-%d')
+initial_end_date = current_date.strftime('%Y-%m-%d')
+
 # The API endpoint
 auth = f"{url}/api/v1/Auth/SignIn"
-get_all_consumptions = f'{url}/api/v1/Balance/get-all-consumption?initial_date=2024-01-01&final_date=2024-08-28'
-get_consumptions_by_nit = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit=1012402467&userAppId=0&initial_date=2024-01-01&final_date=2024-08-28'
+get_all_consumptions = f'{url}/api/v1/Balance/get-all-consumption?initial_date={initial_start_date}&final_date={current_date}'
+get_consumptions_by_nit = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit=1012402467&initial_date={initial_start_date}&final_date={current_date}'
 
 # Access environment variables
 email = os.getenv('EMAIL')
