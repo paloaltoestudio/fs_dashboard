@@ -17,3 +17,11 @@ body {
 .DateInput_input, .DateInput_input_1 {
     height: 40px;
   }
+
+.hidden-dropdown {
+    display: none;
+}
+
+.show-dropdown {
+    display: block;
+}

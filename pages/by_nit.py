@@ -90,6 +90,17 @@ initial_end_date = current_date.strftime('%Y-%m-%d')
 # Layout
 layout = html.Div([
     html.Div([
+        html.H1('Consumos', style={'text-align': 'left', 'margin': '0', 'width': '30%'}),
+        html.Div([
+            dcc.Dropdown(
+                id='users-dropdown',
+                value=0,  # Default value
+                clearable=True,
+                placeholder='Seleccionar usuario',
+                className='hidden-dropdown',
+                style={'height': '42px'},
+            ),
+        ], style={'width': '25%'}),
         html.Div([
             dcc.Dropdown(
                 id='status-dropdown',
@@ -107,7 +118,6 @@ layout = html.Div([
                 max_date_allowed=current_date,    
                 display_format='YYYY-MM-DD',
             ),
-            # html.Button('Filtrar', id='submit-button', n_clicks=0),
         ], style={'display': 'flex', 'height': '30px',}),
     ], style={'display':'flex', 'justify-content':'flex-end', 'column-gap':'20px', 'margin-top': '20px', 'margin-bottom': '20px'}),
 
@@ -166,7 +176,7 @@ def create_figure_from_data(df, selected_status, metric):
             auth_df,
             x='Tipo Autenticacion',
             y='Count',
-            labels={'x': 'Método', 'y': 'Total'},
+            labels={'x': 'Método', 'Count': 'Total'},
             title=f'Firmas por tipo de Autenticación',
             color='Tipo Autenticacion',
             text='Count',
@@ -267,8 +277,82 @@ def create_figure_from_data(df, selected_status, metric):
             
         return fig
 
+    elif metric == 'consolidated':
+        filtered_df = df[df['processStatus'] == selected_status]
+
+        consolidados_dict = filtered_df.iloc[0]['consolidados']
+        consolidados_df = pd.DataFrame(list(consolidados_dict.items()), columns=['Month', 'Count'])
+        
+        # Convert 'Month' to datetime format including year
+        consolidados_df['Month'] = pd.to_datetime(consolidados_df['Month'] + '01', format='%Y%m%d')
+
+        # Format 'Month' to show month and year
+        consolidados_df['Month'] = consolidados_df['Month'].dt.strftime('%B %Y')
+
+        fig = px.line(
+            consolidados_df, 
+            x="Month", 
+            y="Count",
+            title='Procesos por mes',
+            labels={'Month': 'Mes', 'Count': 'Total mes'},
+            text='Count'
+        )
+
+        # Add text labels on the line chart
+        fig.update_traces(textposition="middle left")
+        
+        return fig
+
     # Add more chart types as needed
     return px.bar()
+
+@callback(
+    Output('users-dropdown', 'options'),
+    Output('users-dropdown', 'className'),  # Add an output to control the dropdown's style
+    Input('url', 'search')  # 'search' contains the URL parameters
+)
+def display_users_by_nit(search):
+    # Extract the 'nit' parameter from the URL
+    if search:
+        # Remove the leading '?' character from the search string
+        query_params = parse_qs(search[1:])
+        # Extract 'nit' parameter; returns a list, so use [0] to get the value
+        nit = query_params.get('nit', [None])[0]
+        user = query_params.get('user', [None])[0]
+    else:
+        nit = None
+        user = None
+
+    if nit:
+        # Construct the get_users_by_nit URL using the extracted 'nit'
+        get_users_by_nit = f'{url}/api/v1/Company/GetAllUsersByNit/{nit}'
+
+        #Authenticate
+        token = authenticate()
+
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+
+        # Fetch users by 'nit' using the constructed URL
+        users_by_nit_response = requests.get(get_users_by_nit, headers=headers)
+
+        if users_by_nit_response.status_code == 200:
+            users_by_nit = users_by_nit_response.json()
+
+            if user != '0':
+                dropdown_class = 'hidden-dropdown'
+                dropdown_options = []
+            else:
+                dropdown_class = 'show-dropdown'
+                # Create dropdown options from the users
+                dropdown_options = [{'label': user['fullName'], 'value': user['id']} for user in users_by_nit]
+            
+            return dropdown_options, dropdown_class
+        else:
+            return f"Failed to retrieve data: {users_by_nit_response.text}"
+    else:
+        return "No 'nit' parameter provided in the URL."
 
 # Callback to update the consolidado graph
 @callback(
@@ -277,18 +361,26 @@ def create_figure_from_data(df, selected_status, metric):
     Input('date-picker-range', 'end_date'),
     Input('url', 'href'),  
     Input('status-dropdown', 'value'),
+    Input('users-dropdown', 'value'),
 )
-def update_consolidado_graph(start_date, end_date, href, selected_status):
+def update_consolidado_graph(start_date, end_date, href, selected_status, user_filter):
     nit = ''
 
     if href:
         parsed_url = urlparse(href)
         query_params = parse_qs(parsed_url.query)
         nit = query_params.get('nit', [None])[0]  # Get 'nit' from query parameters
+        user = query_params.get('user', [None])[0]  # Get 'user' from query parameters
    
     # API URL with dynamic dates
     # api_url = f'{url}/api/v1/Balance/get-all-consumption?initial_date={start_date}&final_date={end_date}'
-    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId=0&initial_date={start_date}&final_date={end_date}'
+    user_id = 0
+    if user and int(user) > 0:
+        user_id = user
+    elif user_filter and user_filter > 0:
+        user_id = user_filter
+
+    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId={user_id}&initial_date={start_date}&final_date={end_date}'
     
     # Access environment variables
     email = os.getenv('EMAIL')
@@ -419,54 +511,12 @@ def update_tipo_proceso_donut(start_date, end_date, href, selected_status):
 # Callback to update the consolidados graph
 @callback(
     Output('consolidados', 'figure'),
-    Input('status-dropdown', 'value')
-)
-def update_consolidados(selected_status):
-    # Filter the data based on the selected process status
-    filtered_df = df[df['processStatus'] == selected_status]
-
-    # Extract the tipoCreacion dictionary
-    consolidados_dict = filtered_df.iloc[0]['consolidados']
-
-    # consolidados_df = pd.DataFrame(dict(
-    #     date=list(consolidados_dict.keys()),
-    #     value=list(consolidados_dict.values())
-    # ))
-
-    # Convert the dictionary to a DataFrame
-    consolidados_df = pd.DataFrame(list(consolidados_dict.items()), columns=['Month', 'Count'])
-    
-    # Convert 'date' column to a datetime format
-    consolidados_df['Month'] = pd.to_datetime(consolidados_df['Month'] + '01', format='%Y%m%d')
-
-    # Format 'date' to show month name
-    consolidados_df['Month'] = consolidados_df['Month'].dt.strftime('%B')
-
-    print(consolidados_df)
-
-    fig = px.line(
-        consolidados_df, 
-        x="Month", 
-        y="Count",
-        title='Procesos por mes',
-        labels={'Month': 'Mes', 'Count': 'Total mes'},
-        text='Count'
-    )
-
-    # Add text labels on the line chart
-    fig.update_traces(textposition="middle left")
-    
-    return fig
-
-# Callback to update the auth methods graph
-@callback(
-    Output('auth-methods', 'figure'),
     Input('date-picker-range', 'start_date'),
     Input('date-picker-range', 'end_date'),
     Input('url', 'href'),  
     Input('status-dropdown', 'value'),
 )
-def update_auth_methods(start_date, end_date, href, selected_status): 
+def update_consolidados(start_date, end_date, href, selected_status):
     nit = ''
 
     if href:
@@ -480,6 +530,47 @@ def update_auth_methods(start_date, end_date, href, selected_status):
 
     headers = {"Authorization": f"Bearer {token}"}
     api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId=0&initial_date={start_date}&final_date={end_date}'
+    json_data = fetch_data(api_url, headers)
+    if not json_data:
+        return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Empty plot on data fetch failure
+
+    df = build_data_from_api(json_data)
+    return create_figure_from_data(df, selected_status, 'consolidated')
+
+
+# Callback to update the auth methods graph
+@callback(
+    Output('auth-methods', 'figure'),
+    Input('date-picker-range', 'start_date'),
+    Input('date-picker-range', 'end_date'),
+    Input('url', 'href'),  
+    Input('status-dropdown', 'value'),
+    Input('users-dropdown', 'value'),
+)
+def update_auth_methods(start_date, end_date, href, selected_status, user_filter): 
+    nit = ''
+
+    if href:
+        parsed_url = urlparse(href)
+        query_params = parse_qs(parsed_url.query)
+        nit = query_params.get('nit', [None])[0]  # Get 'nit' from query parameters
+        user = query_params.get('user', [None])[0]  # Get 'user' from query parameters
+   
+    # API URL with dynamic dates
+    # api_url = f'{url}/api/v1/Balance/get-all-consumption?initial_date={start_date}&final_date={end_date}'
+    user_id = 0
+    if user and int(user) > 0:
+        user_id = user
+    elif user_filter and user_filter > 0:
+        user_id = user_filter
+
+    token = authenticate()
+    if not token:
+        return px.bar(x=[], y=[], title="Error: Failed to authenticate")  # Empty plot on auth failure
+
+    headers = {"Authorization": f"Bearer {token}"}
+    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId={user_id}&initial_date={start_date}&final_date={end_date}'
+
     json_data = fetch_data(api_url, headers)
     if not json_data:
         return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Empty plot on data fetch failure
