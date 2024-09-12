@@ -42,10 +42,6 @@ Replace the placeholders with your actual environment variable values.
 To build the Docker image, run the following command in the root directory of your project (where the Dockerfile is located):
 
 ```bash
-<<<<<<< HEAD
-=======
-Copy code
->>>>>>> d73e3cdb38a3918409d6a3592d5f934dd11151b0
 docker build -t dash_app .
 ```
 
@@ -169,7 +165,7 @@ pip install -r requirements.txt
 ### Step 5: Create a .env File
 Create a .env file in the root directory of your project and add your environment variables.
 
-```plaintext
+```dosini
 # .env
 DEVURL=<your_dev_url>
 EMAIL=<your_email>
