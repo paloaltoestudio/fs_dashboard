@@ -7,9 +7,15 @@ import plotly.express as px
 from urllib.parse import parse_qs, urlparse
 import locale
 from datetime import datetime, timedelta
+import pytz
 import requests
 import os
 from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -75,10 +81,14 @@ def build_data_from_api(json_data):
             })
     return pd.DataFrame(data)
 
+# Define the Bogotá time zone
+bogota_tz = pytz.timezone('America/Bogota')
+
 # Set date range
-current_date = datetime.now().date()
+current_date = datetime.now(bogota_tz).date()
 initial_start_date = (current_date - timedelta(days=30)).strftime('%Y-%m-%d')
 initial_end_date = current_date.strftime('%Y-%m-%d')
+
 
 # Register page
 dash.register_page(__name__)
@@ -314,17 +324,21 @@ def initial_data(search):
         user = query_params.get('user', [None])[0]
     else:
         nit = None
-        user = None
+        user = 0
 
     if nit:
         # Prepare initial data for layout
-        get_consumptions_by_nit = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&initial_date={initial_start_date}&final_date={current_date}'
+        get_consumptions_by_nit = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&initial_date={initial_start_date}&final_date={current_date}&&userAppId={user}'
         token = authenticate()
         headers = {
             "Authorization": f"Bearer {token}"
         }
         consumptions_by_nit = fetch_data(get_consumptions_by_nit, headers=headers)
+
+        logger.info(f'URL: -------{get_consumptions_by_nit}')
+            
         json_data = consumptions_by_nit
+        print(json_data)
         df = build_data_from_api(json_data)
 
         
@@ -446,7 +460,8 @@ def update_consolidado_graph(start_date, end_date, href, selected_status, user_f
     consumptions = requests.get(api_url, headers=headers)
     if consumptions.status_code != 200:
         print(f"Failed to fetch consumption data with status code {consumptions.status_code}")
-        return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Return empty plot on data fetch failure
+        empty_df = pd.DataFrame({'x': [], 'y': []})
+        return px.bar(empty_df, x=[], y=[], title="Error: Failed to fetch data")  # Return empty plot on data fetch failure
 
     try: 
         json_data = consumptions.json() # Parse JSON response
@@ -510,10 +525,11 @@ def update_tipo_creacion_donut(start_date, end_date, href, selected_status, user
         return px.bar(x=[], y=[], title="Error: Failed to authenticate")  # Empty plot on auth failure
 
     headers = {"Authorization": f"Bearer {token}"}
-    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId={user_id}&initial_date={start_date}&final_date={end_date}'
+    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&initial_date={start_date}&final_date={end_date}&&userAppId={user_id}'
     json_data = fetch_data(api_url, headers)
     if not json_data:
-        return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Empty plot on data fetch failure
+        empty_df = pd.DataFrame({'x': [], 'y': []})
+        return px.bar(empty_df, x='x', y='y', title="Error: Failed to fetch data")
 
     df = build_data_from_api(json_data)
     return create_figure_from_data(df, selected_status, 'creation_type')
@@ -550,10 +566,11 @@ def update_tipo_proceso_donut(start_date, end_date, href, selected_status, user_
         return px.bar(x=[], y=[], title="Error: Failed to authenticate")  # Empty plot on auth failure
 
     headers = {"Authorization": f"Bearer {token}"}
-    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId={user_id}&initial_date={start_date}&final_date={end_date}'
+    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&initial_date={start_date}&final_date={end_date}&&userAppId={user_id}'
     json_data = fetch_data(api_url, headers)
     if not json_data:
-        return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Empty plot on data fetch failure
+        empty_df = pd.DataFrame({'x': [], 'y': []})
+        return px.bar(empty_df, x='x', y='y', title="Error: Failed to fetch data")
 
     df = build_data_from_api(json_data)
     return create_figure_from_data(df, selected_status, 'process_type')
@@ -593,7 +610,8 @@ def update_consolidados(start_date, end_date, href, selected_status, user_filter
     api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId={user_id}&initial_date={start_date}&final_date={end_date}'
     json_data = fetch_data(api_url, headers)
     if not json_data:
-        return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Empty plot on data fetch failure
+        empty_df = pd.DataFrame({'x': [], 'y': []})
+        return px.bar(empty_df, x='x', y='y', title="Error: Failed to fetch data")
 
     df = build_data_from_api(json_data)
     return create_figure_from_data(df, selected_status, 'consolidated')
@@ -629,11 +647,12 @@ def update_auth_methods(start_date, end_date, href, selected_status, user_filter
         return px.bar(x=[], y=[], title="Error: Failed to authenticate")  # Empty plot on auth failure
 
     headers = {"Authorization": f"Bearer {token}"}
-    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&userAppId={user_id}&initial_date={start_date}&final_date={end_date}'
+    api_url = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&initial_date={start_date}&final_date={end_date}&&userAppId={user_id}'
 
     json_data = fetch_data(api_url, headers)
     if not json_data:
-        return px.bar(x=[], y=[], title="Error: Failed to fetch data")  # Empty plot on data fetch failure
+        empty_df = pd.DataFrame({'x': [], 'y': []})
+        return px.bar(empty_df, x='x', y='y', title="Error: Failed to fetch data")
 
     df = build_data_from_api(json_data)
     return create_figure_from_data(df, selected_status, 'auth_method')
