@@ -61,6 +61,7 @@ def fetch_data(api_endpoint, headers):
 # Function to build data from API response
 def build_data_from_api(json_data):
     """Convert JSON response to DataFrame."""
+
     data = []
     for entry in json_data:
         process_status = entry["processStatus"]
@@ -79,7 +80,32 @@ def build_data_from_api(json_data):
                 "tipoAutenticacion": consumption.get('tipoAutenticacion', {}),
                 "consolidados": consumption.get('consolidados', {})
             })
+
     return pd.DataFrame(data)
+
+def get_total_signatures(json_data):
+    # Initialize a dictionary to hold the sums
+    tipo_autenticacion_sum = {'Llamada': 0, 'SMS': 0, 'Email': 0, 'WhatsApp': 0}
+    total_sum = 0  # Variable to hold the total sum of all methods
+
+    data = []
+    for entry in json_data:
+        process_status = entry["processStatus"]
+        consumption = entry["consumption"]
+
+        if process_status != 'Borrador':
+            # Sum the tipoAutenticacion counts
+            for method, count in consumption['tipoAutenticacion'].items():
+                tipo_autenticacion_sum[method] += count
+                total_sum += count  # Add to total sum
+
+        # Extract fields as is
+        tipo_creacion = consumption.get('tipoCreacion', {})
+        
+    print(tipo_autenticacion_sum)
+    print("Total sum of all tipoAutenticacion:", total_sum)
+
+    return total_sum
 
 # Define the Bogotá time zone
 bogota_tz = pytz.timezone('America/Bogota')
@@ -125,6 +151,11 @@ layout = html.Div([
         ], style={'display': 'flex', 'height': '30px',}),
     ], style={'display':'flex', 'justify-content':'flex-end', 'column-gap':'20px', 'margin-top': '20px', 'margin-bottom': '20px'}),
 
+    html.Div([
+        html.Div(id='total_signatures', style={'display': 'inline-block', 'width': '100px', 'border': '1px solid #ccc', 'padding': '10px', 'margin-bottom': '20px', 'background': '#fff'}),
+
+    ]),
+    
     html.Div([
         # Main graph for consolidado by month
         html.Div([
@@ -313,6 +344,7 @@ def create_figure_from_data(df, selected_status, metric):
 @callback(
     Output('status-dropdown', 'options'),
     Output('status-dropdown', 'value'),
+    Output('total_signatures', 'children'),
     Input('url', 'search')  # 'search' contains the URL parameters
 )
 def initial_data(search):
@@ -340,13 +372,14 @@ def initial_data(search):
         json_data = consumptions_by_nit
         print(json_data)
         df = build_data_from_api(json_data)
+        total_signatures = get_total_signatures(json_data)
 
         
         status_options = [{'label': status, 'value': status} for status in df['processStatus'].unique()]
 
         default_value=df['processStatus'].unique()[4] if not df.empty else None  # Default value
             
-        return status_options, default_value
+        return status_options, default_value, total_signatures
 
     return [], None
 
