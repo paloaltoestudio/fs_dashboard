@@ -185,34 +185,54 @@ layout = html.Div([
     ], style={'display': 'flex', 'column-gap': '20px'}),
     
     html.Div([
-        # Main graph for consolidado by month
         html.Div([
-            dcc.Graph(id='consolidados', style={'height': '350px'}),
-        ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),  
-        
-        # Main graph for consolidado by process status
+            dcc.Loading(
+                id="loading-1",
+                type="dot",
+                overlay_style={"visibility":"visible", "filter": "blur(3px)"},
+                children=dcc.Graph(id='consolidados', style={'border':'1px solid #ccc', 'height': '350px'}), 
+            )
+        ], style={'background': '#fff', 'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
+       
         html.Div([
-            dcc.Graph(id='consolidado-graph', style={'height': '350px'}),
-        ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),  
+            dcc.Loading(
+                id="loading-1",
+                type="dot",
+                overlay_style={"visibility":"visible", "filter": "blur(3px)"},
+                children=dcc.Graph(id='consolidado-graph', style={'border':'1px solid #ccc', 'height': '350px'}),
+            )
+        ], style={'background': '#fff', 'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
       
     ], className="box"),
 
     html.Div([
         html.Div([
-            # Donut chart for tipoCreacion
-            dcc.Graph(id='tipo-proceso-donut', style={'height': '350px'}),
-        ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
+            dcc.Loading(
+                id="loading-1",
+                type="dot",
+                overlay_style={"visibility":"visible", "filter": "blur(3px)"},
+                children=dcc.Graph(id='tipo-proceso-donut', style={'height': '350px'}),
+            )
+        ], style={'background': '#fff', 'display': 'inline-block', 'width': '33%', 'border':'1px solid #ccc'}),
 
         html.Div([
-            # Donut chart for tipoCreacion
-            dcc.Graph(id='tipo-creacion-donut', style={'height': '350px'}),
-        ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
+            dcc.Loading(
+                id="loading-1",
+                type="dot",
+                overlay_style={"visibility":"visible", "filter": "blur(3px)"},
+                children=dcc.Graph(id='tipo-creacion-donut', style={'height': '350px'}),
+            )
+        ], style={'background': '#fff', 'display': 'inline-block', 'width': '33%', 'border':'1px solid #ccc'}),
         
         html.Div([
-            # Chart for Auth Method
-            dcc.Graph(id='auth-methods', style={'height': '350px'}),
+            dcc.Loading(
+                id="loading-1",
+                type="dot",
+                overlay_style={"visibility":"visible", "filter": "blur(3px)"},
+                children=dcc.Graph(id='auth-methods', style={'height': '350px'})
+            ),
             dcc.Location(id='url', refresh=False)  # Location component to get the URL
-        ], style={'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
+        ], style={'background': '#fff', 'display': 'inline-block', 'width': '33%', 'border':'1px solid #ccc'}),
         
     ], className="box"),
 
@@ -670,6 +690,7 @@ def update_tipo_proceso_donut(start_date, end_date, href, selected_status, user_
 # Callback to update the consolidados graph
 @callback(
     Output('consolidados', 'figure'),
+    # Output("consolidados", "children"),
     Input('date-picker-range', 'start_date'),
     Input('date-picker-range', 'end_date'),
     Input('url', 'href'),  
