@@ -83,6 +83,32 @@ def build_data_from_api(json_data):
 
     return pd.DataFrame(data)
 
+def get_total_processes(json_data):
+    total_processes = 0
+
+    for entry in json_data:
+        process_status = entry["processStatus"]
+        
+        # Increment the count if the status is not 'Borrador'
+        if process_status != 'Borrador':
+            tipo_creacion = entry['consumption'].get('tipoCreacion', {})
+            total_processes += tipo_creacion.get('BackOffice', 0) + tipo_creacion.get('API', 0)
+
+    return total_processes
+
+def get_total_processes_signed(json_data):
+    total_processes = 0
+
+    for entry in json_data:
+        process_status = entry["processStatus"]
+        
+        # Increment the count if the status is not 'Borrador'
+        if process_status == 'Exitoso':
+            tipo_creacion = entry['consumption'].get('tipoCreacion', {})
+            total_processes += tipo_creacion.get('BackOffice', 0) + tipo_creacion.get('API', 0)
+
+    return total_processes
+
 def get_total_signatures(json_data):
     # Initialize a dictionary to hold the sums
     tipo_autenticacion_sum = {'Llamada': 0, 'SMS': 0, 'Email': 0, 'WhatsApp': 0}
@@ -122,7 +148,7 @@ dash.register_page(__name__)
 # Layout
 layout = html.Div([
     html.Div([
-        html.H1('Consumos', style={'text-align': 'left', 'margin': '0', 'width': '30%'}),
+        html.H1('Consumos', style={'text-align': 'left', 'margin': '0', 'flex-grow': '1'}),
         html.Div([
             dcc.Dropdown(
                 id='users-dropdown',
@@ -152,9 +178,11 @@ layout = html.Div([
     ], style={'display':'flex', 'justify-content':'flex-end', 'column-gap':'20px', 'margin-top': '20px', 'margin-bottom': '20px'}),
 
     html.Div([
-        html.Div(id='total_signatures', style={'display': 'inline-block', 'width': '100px', 'border': '1px solid #ccc', 'padding': '10px', 'margin-bottom': '20px', 'background': '#fff'}),
+        html.Div(id='total_signatures', style={'display': 'inline-block', 'width': '150px', 'border': '1px solid #ccc', 'padding': '10px', 'margin-bottom': '20px', 'background': '#fff', 'text-align': 'center'}),
+        html.Div(id='total_processes', style={'display': 'inline-block', 'width': '150px', 'border': '1px solid #ccc', 'padding': '10px', 'margin-bottom': '20px', 'background': '#fff', 'text-align': 'center'}),
+        html.Div(id='total_processes_signed', style={'display': 'inline-block', 'width': '250px', 'border': '1px solid #ccc', 'padding': '10px', 'margin-bottom': '20px', 'background': '#fff', 'text-align': 'center'}),
 
-    ]),
+    ], style={'display': 'flex', 'column-gap': '20px'}),
     
     html.Div([
         # Main graph for consolidado by month
@@ -345,9 +373,14 @@ def create_figure_from_data(df, selected_status, metric):
     Output('status-dropdown', 'options'),
     Output('status-dropdown', 'value'),
     Output('total_signatures', 'children'),
-    Input('url', 'search')  # 'search' contains the URL parameters
+    Output('total_processes', 'children'),
+    Output('total_processes_signed', 'children'),
+    Input('url', 'search'),
+    Input('users-dropdown', 'value'),
+    Input('date-picker-range', 'start_date'),
+    Input('date-picker-range', 'end_date'),
 )
-def initial_data(search):
+def initial_data(search, user_filter, start_date, end_date,):
     if search:
         # Remove the leading '?' character from the search string
         query_params = parse_qs(search[1:])
@@ -357,7 +390,16 @@ def initial_data(search):
     else:
         nit = None
         user = 0
+    
+    if user_filter and user_filter > 0:
+        user = user_filter
 
+    if start_date:
+        initial_start_date = start_date
+
+    if end_date:
+        current_date = end_date
+    
     if nit:
         # Prepare initial data for layout
         get_consumptions_by_nit = f'{url}/api/v1/Balance/get-all-consumption-by-nit?nit={nit}&initial_date={initial_start_date}&final_date={current_date}&&userAppId={user}'
@@ -373,13 +415,29 @@ def initial_data(search):
         print(json_data)
         df = build_data_from_api(json_data)
         total_signatures = get_total_signatures(json_data)
+        total_processes = get_total_processes(json_data)
+        total_processes_signed = get_total_processes_signed(json_data)
 
+        total_signatures_html = html.Div([
+            html.Span('Total de firmas'),
+            html.H3(f'{total_signatures}')
+        ])
+        
+        total_signatures_signed_html = html.Div([
+            html.Span('Total de procesos finalizados'),
+            html.H3(f'{total_processes_signed}')
+        ])
+
+        total_processes_html = html.Div([
+            html.Span("Total de procesos"),
+            html.H3(f"{total_processes}")
+        ])
         
         status_options = [{'label': status, 'value': status} for status in df['processStatus'].unique()]
 
         default_value=df['processStatus'].unique()[4] if not df.empty else None  # Default value
             
-        return status_options, default_value, total_signatures
+        return status_options, default_value, total_signatures_html, total_processes_html, total_signatures_signed_html
 
     return [], None
 

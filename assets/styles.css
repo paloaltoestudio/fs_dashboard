@@ -8,6 +8,10 @@ body {
     background: #ebebeb;
 }
 
+h3 {
+    margin: 0;
+}
+
 .box {
     display: flex;
     column-gap: 20px; 
