@@ -1,7 +1,7 @@
 import dash
 from dash import Dash, html, dcc
 
-app = Dash(__name__, use_pages=True)
+app = Dash(__name__, use_pages=True, serve_locally=False)
 
 server = app.server
 
