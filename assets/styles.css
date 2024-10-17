@@ -5,7 +5,7 @@
 body { 
     margin: 0px; 
     padding: 0 20px; 
-    background: #ebebeb;
+    background: #fff;
 }
 
 h3 {
@@ -16,6 +16,12 @@ h3 {
     display: flex;
     column-gap: 20px; 
     margin-bottom: 20px;
+}
+
+.filter_label {
+    font-size: 16px;
+    color: #5c5c5c;
+    margin-bottom: 8px;
 }
 
 .DateInput_input, .DateInput_input_1 {

@@ -148,8 +148,9 @@ dash.register_page(__name__)
 # Layout
 layout = html.Div([
     html.Div([
-        html.H1('Consumos', style={'text-align': 'left', 'margin': '0', 'flex-grow': '1'}),
+        html.H1('Mis consumos', style={'color': '#173179', 'text-transform': 'uppercase', 'text-align': 'left', 'margin': '0', 'font-size': '22px', 'flex-grow': '1'}),
         html.Div([
+            html.Span('Usuario', className='filter_label'),
             dcc.Dropdown(
                 id='users-dropdown',
                 value=0,  # Default value
@@ -158,15 +159,17 @@ layout = html.Div([
                 className='hidden-dropdown',
                 style={'height': '42px'},
             ),
-        ], style={'width': '25%'}),
+        ], style={'display': 'flex', 'width': '25%', 'flex-direction': 'column'}),
         html.Div([
+            html.Span('Estado', className='filter_label'),
             dcc.Dropdown(
                 id='status-dropdown',
                 clearable=False,
                 style={'height': '42px', 'width': '100%'}
             ),
-        ], style={'display': 'inline-block', 'width': '20%'}),
+        ], style={'display': 'flex', 'width': '20%', 'flex-direction': 'column'}),
         html.Div([
+            html.Span('Fecha', className='filter_label'),
             dcc.DatePickerRange(
                 id='date-picker-range',
                 start_date=initial_start_date, 
@@ -174,13 +177,13 @@ layout = html.Div([
                 max_date_allowed=current_date,    
                 display_format='YYYY-MM-DD',
             ),
-        ], style={'display': 'flex', 'height': '30px',}),
+        ], style={'display': 'flex', 'height': '30px', 'flex-direction': 'column'}),
     ], style={'display':'flex', 'justify-content':'flex-end', 'column-gap':'20px', 'margin-top': '20px', 'margin-bottom': '20px'}),
 
     html.Div([
-        html.Div(id='total_signatures', style={'display': 'inline-block', 'width': '150px', 'border': '1px solid #ccc', 'padding': '10px', 'margin-bottom': '20px', 'background': '#fff', 'text-align': 'center'}),
-        html.Div(id='total_processes', style={'display': 'inline-block', 'width': '150px', 'border': '1px solid #ccc', 'padding': '10px', 'margin-bottom': '20px', 'background': '#fff', 'text-align': 'center'}),
-        html.Div(id='total_processes_signed', style={'display': 'inline-block', 'width': '250px', 'border': '1px solid #ccc', 'padding': '10px', 'margin-bottom': '20px', 'background': '#fff', 'text-align': 'center'}),
+        html.Div(id='total_signatures', style={'display': 'inline-block', 'width': '150px', 'padding': '10px', 'margin-bottom': '20px', 'color': '#fff', 'background': '#72d06a', 'text-align': 'center'}),
+        html.Div(id='total_processes', style={'display': 'inline-block', 'width': '150px', 'padding': '10px', 'margin-bottom': '20px', 'color': '#fff', 'background': '#2b5e7f', 'text-align': 'center'}),
+        html.Div(id='total_processes_signed', style={'display': 'inline-block', 'width': '250px', 'padding': '10px', 'margin-bottom': '20px', 'color': '#fff', 'background': '#f7c042', 'text-align': 'center'}),
 
     ], style={'display': 'flex', 'column-gap': '20px'}),
     
