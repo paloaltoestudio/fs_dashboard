@@ -202,7 +202,7 @@ layout = html.Div([
                 id="loading-1",
                 type="dot",
                 overlay_style={"visibility":"visible", "filter": "blur(3px)"},
-                children=dcc.Graph(id='consolidado-graph', style={'height': '350px'}),
+                children=dcc.Graph(id='consolidado-graph', style={'border':'1px solid #ccc', 'height': '350px'}),
             )
         ], style={'background': '#fff', 'display': 'inline-block', 'width': '49%', 'border':'1px solid #ccc'}),
       
