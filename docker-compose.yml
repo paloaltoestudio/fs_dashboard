@@ -18,7 +18,7 @@ services:
       - "80:80"
       - "443:443"  # In case you want to enable HTTPS later
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf  # Reference to the correct config
     depends_on:
       - dash_app
     networks:
