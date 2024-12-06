@@ -150,6 +150,14 @@ layout = html.Div([
     html.Div([
         html.H1('Mis consumos', style={'color': '#173179', 'text-transform': 'uppercase', 'text-align': 'left', 'margin': '0', 'font-size': '22px', 'flex-grow': '1'}),
         html.Div([
+            html.Div(id='total_signatures', style={'display': 'inline-block', 'width': '150px', 'padding': '10px', 'margin-bottom': '20px', 'color': '#fff', 'background': '#72d06a', 'text-align': 'center'}),
+            html.Div(id='total_processes', style={'display': 'inline-block', 'width': '150px', 'padding': '10px', 'margin-bottom': '20px', 'color': '#fff', 'background': '#2b5e7f', 'text-align': 'center'}),
+            html.Div(id='total_processes_signed', style={'display': 'inline-block', 'width': '250px', 'padding': '10px', 'margin-bottom': '20px', 'color': '#fff', 'background': '#f7c042', 'text-align': 'center'}),
+        ], style={'display': 'flex', 'column-gap': '20px'}),
+    ], style={'display':'flex', 'justify-content':'flex-end', 'column-gap':'20px', 'margin-top': '20px', 'margin-bottom': '20px'}),
+    
+    html.Div([
+        html.Div([
             html.Span('Usuario', className='filter_label'),
             dcc.Dropdown(
                 id='users-dropdown',
@@ -180,13 +188,6 @@ layout = html.Div([
         ], style={'display': 'flex', 'height': '30px', 'flex-direction': 'column'}),
     ], style={'display':'flex', 'justify-content':'flex-end', 'column-gap':'20px', 'margin-top': '20px', 'margin-bottom': '20px'}),
 
-    html.Div([
-        html.Div(id='total_signatures', style={'display': 'inline-block', 'width': '150px', 'padding': '10px', 'margin-bottom': '20px', 'color': '#fff', 'background': '#72d06a', 'text-align': 'center'}),
-        html.Div(id='total_processes', style={'display': 'inline-block', 'width': '150px', 'padding': '10px', 'margin-bottom': '20px', 'color': '#fff', 'background': '#2b5e7f', 'text-align': 'center'}),
-        html.Div(id='total_processes_signed', style={'display': 'inline-block', 'width': '250px', 'padding': '10px', 'margin-bottom': '20px', 'color': '#fff', 'background': '#f7c042', 'text-align': 'center'}),
-
-    ], style={'display': 'flex', 'column-gap': '20px'}),
-    
     html.Div([
         html.Div([
             dcc.Loading(
@@ -582,6 +583,13 @@ def update_consolidado_graph(start_date, end_date, href, selected_status, user_f
         # Convert the data into a pandas DataFrame
         data = []
         df = build_data_from_api(json_data)
+        df = df[df['processStatus'] != 'TODOS']
+
+        if (selected_status.lower() != 'todos'):
+            filtered_df = df[df['processStatus'] == selected_status]
+            df = filtered_df
+
+
     except requests.exceptions.JSONDecodeError:
         print("Failed to decode consumption data response")
         return px.bar(

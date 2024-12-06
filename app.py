@@ -1,7 +1,12 @@
+import os
 import dash
 from dash import Dash, html, dcc
 
-app = Dash(__name__, use_pages=True, serve_locally=False)
+# Get the base path from the environment variable (default to '/'). ex: /dashboard/
+requests_pathname_prefix = os.getenv('REQUESTS_PATHNAME_PREFIX', '/')
+routes_pathname_prefix = os.getenv('ROUTES_PATHNAME_PREFIX', '/')
+
+app = Dash(__name__, use_pages=True, serve_locally=False, requests_pathname_prefix=requests_pathname_prefix, routes_pathname_prefix=routes_pathname_prefix,)
 
 server = app.server
 
